@@ -212,12 +212,13 @@ type BlockChain struct {
 	vmConfig   vm.Config
 
 	shouldPreserve func(*types.Block) bool // Function used to determine whether should preserve the given block.
+	testFunc       func()
 }
 
 // NewBlockChain returns a fully initialised block chain using information
 // available in the database. It initialises the default Ethereum Validator and
 // Processor.
-func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine consensus.Engine, vmConfig vm.Config, shouldPreserve func(block *types.Block) bool, txLookupLimit *uint64) (*BlockChain, error) {
+func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine consensus.Engine, vmConfig vm.Config, shouldPreserve func(block *types.Block) bool, txLookupLimit *uint64, testFunc func()) (*BlockChain, error) {
 	if cacheConfig == nil {
 		cacheConfig = defaultCacheConfig
 	}
@@ -240,6 +241,7 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 		}),
 		quit:           make(chan struct{}),
 		shouldPreserve: shouldPreserve,
+		testFunc:       testFunc,
 		bodyCache:      bodyCache,
 		bodyRLPCache:   bodyRLPCache,
 		receiptsCache:  receiptsCache,
