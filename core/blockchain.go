@@ -18,6 +18,7 @@
 package core
 
 import (
+	_ "context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -1866,7 +1867,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 		// log.Info("|BLOCK IS READY TO BE IMPORTED|")
 		// log.Info("-------------------------------")
 
-
 		ImportedBlock := types.MakeImportBlock(block)
 
 		fmt.Println(block.Hash())
@@ -1884,7 +1884,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 		}
 		log.Info("File " + string(JsonHash) + " created")
 
-
 		JsonReceipts, errReceipts := json.Marshal(receipts)
 		if errReceipts != nil {
 			log.Error("Receipts extracting error: " + string(errReceipts.Error()))
@@ -1894,7 +1893,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 			log.Error("Block extracting error: " + string(errBlock.Error()))
 		}
 		fmt.Println(string(JsonBlock))
-
 
 		writeString, err := JsonFile.WriteString(string(JsonBlock))
 		if err != nil {
@@ -1914,7 +1912,16 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 		}
 		log.Info("File " + string(JsonHash) + " closed")
 
+		//api := tracers.NewAPI(main.)
 
+		//api := tracers.NewAPI()
+		//log.Info("Trying to trace block")
+		//fmt.Println(res)
+
+		///-------------------------------------------------------------------///
+		//log.Error("BLOCK IS READY TO BE IMPORTED")
+		///-------------------------------------------------------------------///
+		//fmt.Println(block.Header(), block.Uncles(), block.Transactions(), block.Hash(), block.Size(), block.ParentHash())
 
 		// Write the block to the chain and get the status.
 		substart = time.Now()
