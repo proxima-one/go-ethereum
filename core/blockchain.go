@@ -218,7 +218,7 @@ type BlockChain struct {
 // NewBlockChain returns a fully initialised block chain using information
 // available in the database. It initialises the default Ethereum Validator and
 // Processor.
-func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine consensus.Engine, vmConfig vm.Config, shouldPreserve func(block *types.Block) bool, txLookupLimit *uint64, testFunc func()) (*BlockChain, error) {
+func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine consensus.Engine, vmConfig vm.Config, shouldPreserve func(block *types.Block) bool, txLookupLimit *uint64, testFunc ...func()) (*BlockChain, error) {
 	if cacheConfig == nil {
 		cacheConfig = defaultCacheConfig
 	}
@@ -228,6 +228,11 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	blockCache, _ := lru.New(blockCacheLimit)
 	txLookupCache, _ := lru.New(txLookupCacheLimit)
 	futureBlocks, _ := lru.New(maxFutureBlocks)
+
+	var realFunc func() = nil
+	if len(testFunc) > 0 {
+		realFunc = testFunc[0]
+	}
 
 	bc := &BlockChain{
 		chainConfig: chainConfig,
@@ -241,7 +246,7 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 		}),
 		quit:           make(chan struct{}),
 		shouldPreserve: shouldPreserve,
-		testFunc:       testFunc,
+		testFunc:       realFunc,
 		bodyCache:      bodyCache,
 		bodyRLPCache:   bodyRLPCache,
 		receiptsCache:  receiptsCache,
@@ -1868,6 +1873,8 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 		// log.Info("-------------------------------")
 		// log.Info("|BLOCK IS READY TO BE IMPORTED|")
 		// log.Info("-------------------------------")
+
+		bc.testFunc()
 
 		ImportedBlock := types.MakeImportBlock(block)
 
