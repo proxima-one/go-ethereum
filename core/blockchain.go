@@ -18,10 +18,13 @@
 package core
 
 import (
-	_ "context"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/internal/ethapi"
+	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/ethereum/go-ethereum/signer/core"
 	"io"
 	"math/big"
 	mrand "math/rand"
@@ -147,6 +150,72 @@ var defaultCacheConfig = &CacheConfig{
 	SnapshotWait:   true,
 }
 
+// TraceConfig is copied from api.go
+// TraceConfig holds extra parameters to trace functions.
+type TraceConfig struct {
+	*vm.LogConfig
+	Tracer  *string
+	Timeout *string
+	Reexec  *uint64
+}
+
+// txTraceResult is copied from api.go
+// txTraceResult is the result of a single transaction trace.
+type txTraceResult struct {
+	Result interface{} `json:"result,omitempty"` // Trace results produced by the tracer
+	Error  string      `json:"error,omitempty"`  // Trace failure produced by the tracer
+}
+
+// StdTraceConfig is copied from api.go
+// StdTraceConfig holds extra parameters to standard-json trace functions.
+type StdTraceConfig struct {
+	vm.LogConfig
+	Reexec *uint64
+	TxHash common.Hash
+}
+
+// TraceCallConfig is copied from api.go
+// TraceCallConfig is the config for traceCall API. It holds one more
+// field to override the state for tracing.
+type TraceCallConfig struct {
+	*vm.LogConfig
+	Tracer         *string
+	Timeout        *string
+	Reexec         *uint64
+	StateOverrides *ethapi.StateOverride
+}
+
+// Context is copied from tracer.go
+// Context contains some contextual infos for a transaction execution that is not
+// available from within the EVM object.
+type Context struct {
+	BlockHash common.Hash // Hash of the block the tx is contained within (zero if dangling tx or call)
+	TxIndex   int         // Index of the transaction within a block (zero if dangling tx or call)
+	TxHash    common.Hash // Hash of the transaction being traced (zero if dangling call)
+}
+
+// ApiInterface - interface for API to insert into BlockChain structure
+type ApiInterface interface {
+	chainContext(ctx context.Context) ChainContext
+	blockByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Block, error)
+	blockByHash(ctx context.Context, hash common.Hash) (*types.Block, error)
+	blockByNumberAndHash(ctx context.Context, number rpc.BlockNumber, hash common.Hash) (*types.Block, error)
+	TraceChain(ctx context.Context, start, end rpc.BlockNumber, config *TraceConfig) (*rpc.Subscription, error)
+	traceChain(ctx context.Context, start, end *types.Block, config *TraceConfig) (*rpc.Subscription, error)
+	TraceBlockByNumber(ctx context.Context, number rpc.BlockNumber, config *TraceConfig) ([]*txTraceResult, error)
+	TraceBlockByHash(ctx context.Context, hash common.Hash, config *TraceConfig) ([]*txTraceResult, error)
+	TraceBlock(ctx context.Context, blob []byte, config *TraceConfig) ([]*txTraceResult, error)
+	TraceBlockFromFile(ctx context.Context, file string, config *TraceConfig) ([]*txTraceResult, error)
+	TraceBadBlock(ctx context.Context, hash common.Hash, config *TraceConfig) ([]*txTraceResult, error)
+	StandardTraceBlockToFile(ctx context.Context, hash common.Hash, config *StdTraceConfig) ([]string, error)
+	StandardTraceBadBlockToFile(ctx context.Context, hash common.Hash, config *StdTraceConfig) ([]string, error)
+	traceBlock(ctx context.Context, block *types.Block, config *TraceConfig) ([]*txTraceResult, error)
+	standardTraceBlockToFile(ctx context.Context, block *types.Block, config *StdTraceConfig) ([]string, error)
+	TraceTransaction(ctx context.Context, hash common.Hash, config *TraceConfig) (interface{}, error)
+	TraceCall(ctx context.Context, args ethapi.TransactionArgs, blockNrOrHash rpc.BlockNumberOrHash, config *TraceCallConfig) (interface{}, error)
+	traceTx(ctx context.Context, message core.Message, txctx *Context, vmctx vm.BlockContext, statedb *state.StateDB, config *TraceConfig) (interface{}, error)
+}
+
 // BlockChain represents the canonical chain given a database with a genesis
 // block. The Blockchain manages chain imports, reverts, chain reorganisations.
 //
@@ -211,8 +280,11 @@ type BlockChain struct {
 	processor  Processor // Block transaction processor interface
 	vmConfig   vm.Config
 
-	shouldPreserve func(*types.Block) bool // Function used to determine whether should preserve the given block.
-	testFunc       func()
+	shouldPreserve func(*types.Block) bool // Function use to determine whether should preserve the given block.
+	TestFunc       func()
+
+	Api ApiInterface
+	//TestAPI *tracers.API
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -246,7 +318,7 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 		}),
 		quit:           make(chan struct{}),
 		shouldPreserve: shouldPreserve,
-		testFunc:       realFunc,
+		TestFunc:       realFunc,
 		bodyCache:      bodyCache,
 		bodyRLPCache:   bodyRLPCache,
 		receiptsCache:  receiptsCache,
@@ -1874,7 +1946,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 		// log.Info("|BLOCK IS READY TO BE IMPORTED|")
 		// log.Info("-------------------------------")
 
-		bc.testFunc()
+		bc.TestFunc()
 
 		ImportedBlock := types.MakeImportBlock(block)
 
