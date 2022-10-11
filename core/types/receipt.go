@@ -63,6 +63,7 @@ type Receipt struct {
 	// They are stored in the chain database.
 	TxHash          common.Hash    `json:"transactionHash" gencodec:"required"`
 	ContractAddress common.Address `json:"contractAddress"`
+	From            common.Address `json:"from"`
 	GasUsed         uint64         `json:"gasUsed" gencodec:"required"`
 
 	// Inclusion information: These fields provide information about the inclusion of the
