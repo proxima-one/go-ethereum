@@ -50,6 +50,10 @@ type txJSON struct {
 	Hash common.Hash `json:"hash"`
 }
 
+type txJSONWithHash struct {
+	Hash *string `json:"hash"`
+}
+
 // MarshalJSON marshals as JSON with a hash.
 func (t *Transaction) MarshalJSON() ([]byte, error) {
 	var enc txJSON
@@ -105,7 +109,13 @@ func (t *Transaction) UnmarshalJSON(input []byte) error {
 		return err
 	}
 
+	var decHash txJSONWithHash
+	if err := json.Unmarshal(input, &decHash); err != nil {
+		return err
+	}
+
 	// Decode / verify fields according to transaction type.
+	t.RpcHash = decHash.Hash
 	var inner TxData
 	switch dec.Type {
 	case LegacyTxType:
