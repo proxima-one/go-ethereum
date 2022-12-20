@@ -16,6 +16,7 @@ var _ = (*headerMarshaling)(nil)
 // MarshalJSON marshals as JSON.
 func (h Header) MarshalJSON() ([]byte, error) {
 	type Header struct {
+		RpcHash     common.Hash
 		ParentHash  common.Hash    `json:"parentHash"       gencodec:"required"`
 		UncleHash   common.Hash    `json:"sha3Uncles"       gencodec:"required"`
 		Coinbase    common.Address `json:"miner"            gencodec:"required"`
@@ -35,6 +36,8 @@ func (h Header) MarshalJSON() ([]byte, error) {
 		Hash        common.Hash    `json:"hash"`
 	}
 	var enc Header
+	
+	enc.RpcHash = h.RpcHash
 	enc.ParentHash = h.ParentHash
 	enc.UncleHash = h.UncleHash
 	enc.Coinbase = h.Coinbase
@@ -58,6 +61,7 @@ func (h Header) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON unmarshals from JSON.
 func (h *Header) UnmarshalJSON(input []byte) error {
 	type Header struct {
+		RpcHash     *common.Hash    `json:"hash"             gencodec:"required"`
 		ParentHash  *common.Hash    `json:"parentHash"       gencodec:"required"`
 		UncleHash   *common.Hash    `json:"sha3Uncles"       gencodec:"required"`
 		Coinbase    *common.Address `json:"miner"            gencodec:"required"`
@@ -79,6 +83,10 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 	if err := json.Unmarshal(input, &dec); err != nil {
 		return err
 	}
+	if dec.RpcHash == nil {
+		return errors.New("missing required field 'hash' for Header")
+	}
+	h.RpcHash = *dec.RpcHash
 	if dec.ParentHash == nil {
 		return errors.New("missing required field 'parentHash' for Header")
 	}
