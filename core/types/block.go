@@ -63,6 +63,7 @@ func (n *BlockNonce) UnmarshalText(input []byte) error {
 
 // Header represents a block header in the Ethereum blockchain.
 type Header struct {
+	RpcHash     common.Hash    `json:"hash"             gencodec:"required"`
 	ParentHash  common.Hash    `json:"parentHash"       gencodec:"required"`
 	UncleHash   common.Hash    `json:"sha3Uncles"       gencodec:"required"`
 	Coinbase    common.Address `json:"miner"`
@@ -163,9 +164,9 @@ func (h *Header) EmptyReceipts() bool {
 // Body is a simple (mutable, non-safe) data container for storing and moving
 // a block's data contents (transactions and uncles) together.
 type Body struct {
-	Transactions []*Transaction
-	Uncles       []*Header
-	Withdrawals  []*Withdrawal `rlp:"optional"`
+	Transactions []*Transaction `json:"transactions"`
+	Uncles       []*Header      `json:"uncles"`
+	Withdrawals  []*Withdrawal  `rlp:"optional"`
 }
 
 // Block represents an entire block in the Ethereum blockchain.
@@ -183,6 +184,20 @@ type Block struct {
 	// inter-peer block relay.
 	ReceivedAt   time.Time
 	ReceivedFrom interface{}
+}
+
+type ImportBlock struct {
+	BlockHeader *Header `json:"block_header"`
+	BlockBody   *Body   `json:"block_body"`
+}
+
+func MakeImportBlock(block *Block) *ImportBlock {
+	ans := new(ImportBlock)
+
+	ans.BlockHeader = block.Header()
+	ans.BlockBody = block.Body()
+
+	return ans
 }
 
 // "external" block encoding. used for eth protocol, etc.
@@ -334,6 +349,7 @@ func (b *Block) Bloom() Bloom             { return b.header.Bloom }
 func (b *Block) Coinbase() common.Address { return b.header.Coinbase }
 func (b *Block) Root() common.Hash        { return b.header.Root }
 func (b *Block) ParentHash() common.Hash  { return b.header.ParentHash }
+func (b *Block) RpcHash() common.Hash     { return b.header.RpcHash }
 func (b *Block) TxHash() common.Hash      { return b.header.TxHash }
 func (b *Block) ReceiptHash() common.Hash { return b.header.ReceiptHash }
 func (b *Block) UncleHash() common.Hash   { return b.header.UncleHash }

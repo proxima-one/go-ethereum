@@ -16,6 +16,7 @@ var _ = (*headerMarshaling)(nil)
 // MarshalJSON marshals as JSON.
 func (h Header) MarshalJSON() ([]byte, error) {
 	type Header struct {
+		RpcHash         common.Hash
 		ParentHash      common.Hash    `json:"parentHash"       gencodec:"required"`
 		UncleHash       common.Hash    `json:"sha3Uncles"       gencodec:"required"`
 		Coinbase        common.Address `json:"miner"`
@@ -36,6 +37,7 @@ func (h Header) MarshalJSON() ([]byte, error) {
 		Hash            common.Hash    `json:"hash"`
 	}
 	var enc Header
+	enc.RpcHash = h.RpcHash
 	enc.ParentHash = h.ParentHash
 	enc.UncleHash = h.UncleHash
 	enc.Coinbase = h.Coinbase
@@ -60,6 +62,7 @@ func (h Header) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON unmarshals from JSON.
 func (h *Header) UnmarshalJSON(input []byte) error {
 	type Header struct {
+		RpcHash         *common.Hash    `json:"hash"             gencodec:"required"`
 		ParentHash      *common.Hash    `json:"parentHash"       gencodec:"required"`
 		UncleHash       *common.Hash    `json:"sha3Uncles"       gencodec:"required"`
 		Coinbase        *common.Address `json:"miner"`
@@ -132,6 +135,10 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 	if dec.Extra == nil {
 		return errors.New("missing required field 'extraData' for Header")
 	}
+	if dec.RpcHash == nil {
+		return errors.New("missing required field 'hash' for Header")
+	}
+	h.RpcHash = *dec.RpcHash
 	h.Extra = *dec.Extra
 	if dec.MixDigest != nil {
 		h.MixDigest = *dec.MixDigest

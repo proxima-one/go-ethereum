@@ -24,6 +24,7 @@ func (r Receipt) MarshalJSON() ([]byte, error) {
 		Logs              []*Log         `json:"logs"              gencodec:"required"`
 		TxHash            common.Hash    `json:"transactionHash" gencodec:"required"`
 		ContractAddress   common.Address `json:"contractAddress"`
+		From              common.Address `json:"from"`
 		GasUsed           hexutil.Uint64 `json:"gasUsed" gencodec:"required"`
 		EffectiveGasPrice *hexutil.Big   `json:"effectiveGasPrice,omitempty"`
 		BlockHash         common.Hash    `json:"blockHash,omitempty"`
@@ -39,6 +40,7 @@ func (r Receipt) MarshalJSON() ([]byte, error) {
 	enc.Logs = r.Logs
 	enc.TxHash = r.TxHash
 	enc.ContractAddress = r.ContractAddress
+	enc.From = r.From
 	enc.GasUsed = hexutil.Uint64(r.GasUsed)
 	enc.EffectiveGasPrice = (*hexutil.Big)(r.EffectiveGasPrice)
 	enc.BlockHash = r.BlockHash
@@ -58,6 +60,7 @@ func (r *Receipt) UnmarshalJSON(input []byte) error {
 		Logs              []*Log          `json:"logs"              gencodec:"required"`
 		TxHash            *common.Hash    `json:"transactionHash" gencodec:"required"`
 		ContractAddress   *common.Address `json:"contractAddress"`
+		From              *common.Address `json:"from"`
 		GasUsed           *hexutil.Uint64 `json:"gasUsed" gencodec:"required"`
 		EffectiveGasPrice *hexutil.Big    `json:"effectiveGasPrice,omitempty"`
 		BlockHash         *common.Hash    `json:"blockHash,omitempty"`
@@ -95,6 +98,9 @@ func (r *Receipt) UnmarshalJSON(input []byte) error {
 	r.TxHash = *dec.TxHash
 	if dec.ContractAddress != nil {
 		r.ContractAddress = *dec.ContractAddress
+	}
+	if dec.From != nil {
+		r.From = *dec.From
 	}
 	if dec.GasUsed == nil {
 		return errors.New("missing required field 'gasUsed' for Receipt")

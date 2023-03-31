@@ -61,6 +61,7 @@ type Receipt struct {
 	// Implementation fields: These fields are added by geth when processing a transaction.
 	TxHash            common.Hash    `json:"transactionHash" gencodec:"required"`
 	ContractAddress   common.Address `json:"contractAddress"`
+	From              common.Address `json:"from"`
 	GasUsed           uint64         `json:"gasUsed" gencodec:"required"`
 	EffectiveGasPrice *big.Int       `json:"effectiveGasPrice"`
 

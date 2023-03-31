@@ -18,10 +18,12 @@
 package core
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"math/big"
+	"os"
 	"runtime"
 	"sort"
 	"strings"
@@ -1785,6 +1787,55 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals, setHead bool)
 		trieRead += statedb.SnapshotStorageReads + statedb.StorageReads // The time spent on storage read
 		blockExecutionTimer.Update(ptime - trieRead)                    // The time spent on EVM processing
 		blockValidationTimer.Update(vtime - (triehash + trieUpdate))    // The time spent on block validation
+
+		// log.Info("-------------------------------")
+		// log.Info("|BLOCK IS READY TO BE IMPORTED|")
+		// log.Info("-------------------------------")
+
+		ImportedBlock := types.MakeImportBlock(block)
+
+		fmt.Println(block.Hash())
+		JsonHash, err := json.Marshal(ImportedBlock.BlockHeader.Hash())
+		if err != nil {
+			log.Error("Hash extracting error: " + string(err.Error()))
+		}
+
+		jsonfilename := string(JsonHash)
+		filename := strings.Replace(jsonfilename, "\"", "", 2)
+
+		JsonFile, err := os.Create("./export_data/blocks/" + filename)
+		if err != nil {
+			log.Error("File creation error: " + string(err.Error()))
+		}
+		log.Info("File " + string(JsonHash) + " created")
+
+		JsonReceipts, errReceipts := json.Marshal(receipts)
+		if errReceipts != nil {
+			log.Error("Receipts extracting error: " + string(errReceipts.Error()))
+		}
+		JsonBlock, errBlock := json.Marshal(ImportedBlock)
+		if errBlock != nil {
+			log.Error("Block extracting error: " + string(errBlock.Error()))
+		}
+		fmt.Println(string(JsonBlock))
+
+		writeString, err := JsonFile.WriteString(string(JsonBlock))
+		if err != nil {
+			log.Error("Writing block: " + string(err.Error()))
+		}
+		log.Info(string(rune(writeString)) + " bytes were written (block)")
+
+		writeString, err = JsonFile.WriteString(string(JsonReceipts))
+		if err != nil {
+			log.Error("Writing receipts: " + string(err.Error()))
+		}
+		log.Info(string(rune(writeString)) + " bytes were written (receipts)")
+
+		err = JsonFile.Close()
+		if err != nil {
+			log.Error("File " + string(JsonHash) + " closing: " + string(err.Error()))
+		}
+		log.Info("File " + string(JsonHash) + " closed")
 
 		// Write the block to the chain and get the status.
 		var (
